@@ -1,34 +1,54 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import Header from './components/Header';
+import './App.css';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Pokemon, Pokemons } from './types/Pokemon';
+import Gallery from './components/Gallery';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
+  const [nextUrl, setNextUrl] = useState<string>('');
+
+  useEffect(() => {
+    const getPokemons = async () => {
+      const res = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon?offset=0&limit=20`
+      );
+      setNextUrl(res.data.next);
+
+      res.data.results.forEach(async (pokemons: Pokemons) => {
+        const poke = await axios.get(
+          `https://pokeapi.co/api/v2/pokemon/${pokemons.name}`
+        );
+        setPokemons((p) => [...p, poke.data]);
+      });
+    };
+    getPokemons();
+  }, []);
+
+  const nextPage = async () => {
+    let res = await axios.get(nextUrl);
+
+    setNextUrl(res.data.next);
+
+    res.data.results.forEach(async (pokemons: Pokemons) => {
+      const poke = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon/${pokemons.name}`
+      );
+      setPokemons((p) => [...p, poke.data]);
+    });
+  };
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className='App'>
+      <Header />
+      <Gallery pokemons={pokemons} />
+      <div className='btn'>
+        {' '}
+        <button onClick={nextPage}>Next</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
